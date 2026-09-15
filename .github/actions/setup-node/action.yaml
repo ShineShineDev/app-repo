@@ -1,0 +1,24 @@
+name: "Setup Node.js & Install Dependencies"
+description: >
+  Composite action that sets up Node.js with npm cache and runs `npm ci`.
+  NOTE: actions/checkout must be run BEFORE calling this action in the parent job,
+  because GitHub needs the repo checked out to locate this action file itself.
+
+inputs:
+  node-version:
+    description: "Node.js version to install"
+    required: false
+    default: "22"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js ${{ inputs.node-version }}
+      uses: actions/setup-node@v5
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci

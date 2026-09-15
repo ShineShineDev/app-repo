@@ -1,0 +1,51 @@
+name: Security Scan
+
+on:
+  push:
+  pull_request:
+  
+permissions:
+  contents: read
+  security-events: write   
+
+jobs:
+  dependency-audit:
+    name: Dependency Audit (npm audit)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js & install deps
+        uses: ./.github/actions/setup-node
+
+      - name: Run npm audit
+        run: npm audit --audit-level=critical
+
+  
+  trivy-fs:
+    name: Filesystem Scan (Trivy)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Run Trivy on repository filesystem
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL
+          exit-code: '0'          
+          ignore-unfixed: true     
+          format: sarif
+          output: trivy-fs.sarif
+
+      - name: Upload Trivy SARIF to GitHub Security tab
+        if: always()           
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-filesystem
