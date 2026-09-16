@@ -312,6 +312,7 @@ export class AppService {
       <ul class="nav-links">
         <li><a href="#features">Features</a></li>
         <li><a href="#endpoints">Endpoints</a></li>
+        <li><a href="/about">About</a></li>
         <li><a href="/health">Health</a></li>
       </ul>
     </nav>
@@ -393,8 +394,284 @@ export class AppService {
       </div>
       <div class="endpoint-row">
         <span class="method get">GET</span>
+        <span class="path">/about</span>
+        <span class="desc">About Us — team, mission &amp; tech stack</span>
+      </div>
+      <div class="endpoint-row">
+        <span class="method get">GET</span>
         <span class="path">/health</span>
         <span class="desc">Health check — status, uptime &amp; timestamp</span>
+      </div>
+    </section>
+
+  </div>
+
+  <footer>
+    Built with <span>♥</span> using NestJS &amp; deployed on Kubernetes.
+  </footer>
+</body>
+</html>`;
+  }
+
+  getAboutPage(): string {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About Us — API</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #07070f;
+      --surface:   rgba(255,255,255,0.04);
+      --border:    rgba(255,255,255,0.08);
+      --purple:    #a855f7;
+      --blue:      #3b82f6;
+      --cyan:      #22d3ee;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
+      --radius:    16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: \'Segoe UI\', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: \'\';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(168,85,247,.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(168,85,247,.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+    body::after {
+      content: \'\';
+      position: fixed; top: -20%; left: 50%; transform: translateX(-50%);
+      width: 900px; height: 600px;
+      background: radial-gradient(ellipse, rgba(168,85,247,.18) 0%, rgba(59,130,246,.10) 40%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .page { position: relative; z-index: 1; width: 100%; max-width: 1100px; padding: 0 24px; }
+
+    /* Nav */
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 28px 0; }
+    .logo {
+      font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .nav-links { display: flex; gap: 28px; list-style: none; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: .9rem; transition: color .2s; }
+    .nav-links a:hover, .nav-links a.active { color: var(--text); }
+
+    /* Hero */
+    .hero { text-align: center; padding: 80px 0 60px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(168,85,247,.12); border: 1px solid rgba(168,85,247,.35);
+      color: var(--purple); font-size: .78rem; font-weight: 600;
+      letter-spacing: .08em; text-transform: uppercase;
+      padding: 6px 16px; border-radius: 999px; margin-bottom: 32px;
+    }
+    .badge-dot {
+      width: 6px; height: 6px; background: var(--purple); border-radius: 50%;
+      box-shadow: 0 0 8px var(--purple); animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .5; transform: scale(1.4); }
+    }
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 4rem); font-weight: 800;
+      letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 24px;
+    }
+    h1 .grad {
+      background: linear-gradient(135deg, #fff 30%, var(--purple) 70%, var(--blue) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .subtitle { font-size: 1.1rem; color: var(--muted); max-width: 560px; margin: 0 auto; line-height: 1.75; }
+
+    /* Section label */
+    .section-label {
+      font-size: .75rem; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--purple); margin-bottom: 12px;
+    }
+    .section-title { font-size: 1.6rem; font-weight: 800; margin-bottom: 16px; }
+    .section-body  { color: var(--muted); line-height: 1.8; max-width: 680px; }
+
+    /* Mission */
+    .mission {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 48px; margin: 72px 0 0;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center;
+    }
+    @media (max-width: 680px) { .mission { grid-template-columns: 1fr; } }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .mission-stat { text-align: center; }
+    .mission-stat .big {
+      font-size: 3rem; font-weight: 900;
+      background: linear-gradient(135deg, var(--purple), var(--blue));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .mission-stat .label { font-size: .85rem; color: var(--muted); margin-top: 6px; }
+
+    /* Team cards */
+    .team-section { padding: 80px 0 40px; }
+    .team-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px; margin-top: 40px;
+    }
+    .team-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px;
+      transition: border-color .25s, transform .25s; text-align: center;
+    }
+    .team-card:hover { border-color: rgba(168,85,247,.35); transform: translateY(-4px); }
+    .avatar {
+      width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; background: rgba(168,85,247,.12);
+      border: 2px solid rgba(168,85,247,.3);
+    }
+    .team-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+    .team-card .role { font-size: .82rem; color: var(--purple); font-weight: 600; margin-bottom: 12px; }
+    .team-card p { font-size: .85rem; color: var(--muted); line-height: 1.6; }
+
+    /* Tech stack */
+    .stack-section { padding: 40px 0 80px; }
+    .stack-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px; margin-top: 40px;
+    }
+    .stack-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 16px; text-align: center;
+      transition: border-color .25s;
+    }
+    .stack-item:hover { border-color: rgba(59,130,246,.4); }
+    .stack-icon { font-size: 1.8rem; margin-bottom: 10px; }
+    .stack-item h4 { font-size: .88rem; font-weight: 700; margin-bottom: 4px; }
+    .stack-item p  { font-size: .78rem; color: var(--muted); }
+
+    /* Footer */
+    footer {
+      padding: 32px 0; text-align: center;
+      font-size: .82rem; color: var(--muted);
+      border-top: 1px solid var(--border); width: 100%;
+    }
+    footer span { color: var(--purple); }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- Nav -->
+    <nav>
+      <div class="logo">⬡ API</div>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/about" class="active">About</a></li>
+        <li><a href="/health">Health</a></li>
+      </ul>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="badge"><span class="badge-dot"></span> Our Story</div>
+      <h1>
+        <span class="grad">Built by engineers,</span><br>
+        <span class="grad">for engineers.</span>
+      </h1>
+      <p class="subtitle">
+        We believe great infrastructure should be invisible — fast, reliable, and out of your way
+        so you can focus on what matters most: shipping features.
+      </p>
+    </section>
+
+    <!-- Mission -->
+    <div class="mission">
+      <div>
+        <div class="section-label">Our Mission</div>
+        <div class="section-title">Simplify the path from code to production.</div>
+        <p class="section-body">
+          We build and maintain a production-grade NestJS API platform designed for teams
+          who care about quality. Containerised from day one, GitOps-driven, and continuously
+          delivered — this is the foundation you deserve.
+        </p>
+      </div>
+      <div class="stats-grid">
+        <div class="mission-stat">
+          <div class="big">99.9%</div>
+          <div class="label">Uptime SLA</div>
+        </div>
+        <div class="mission-stat">
+          <div class="big">&lt;5ms</div>
+          <div class="label">Avg. Latency</div>
+        </div>
+        <div class="mission-stat">
+          <div class="big">0</div>
+          <div class="label">Root Containers</div>
+        </div>
+        <div class="mission-stat">
+          <div class="big">∞</div>
+          <div class="label">Scalability</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team -->
+    <section class="team-section">
+      <div class="section-label">The Team</div>
+      <div class="section-title">Who\'s behind the API?</div>
+      <div class="team-grid">
+        <div class="team-card">
+          <div class="avatar">🧑‍💻</div>
+          <h3>Platform Engineering</h3>
+          <div class="role">Infrastructure &amp; DevOps</div>
+          <p>Designs the Kubernetes manifests, FluxCD pipelines, and GitHub Actions that keep everything running.</p>
+        </div>
+        <div class="team-card">
+          <div class="avatar">🛠️</div>
+          <h3>Backend Engineering</h3>
+          <div class="role">API &amp; Services</div>
+          <p>Builds the NestJS application layer — controllers, services, validation, and business logic.</p>
+        </div>
+        <div class="team-card">
+          <div class="avatar">🔐</div>
+          <h3>Security Engineering</h3>
+          <div class="role">AppSec &amp; Compliance</div>
+          <p>Runs Trivy image scans, static analysis, and enforces security policies across the entire delivery chain.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tech Stack -->
+    <section class="stack-section">
+      <div class="section-label">Tech Stack</div>
+      <div class="section-title">What powers this API?</div>
+      <div class="stack-grid">
+        <div class="stack-item"><div class="stack-icon">🐦</div><h4>NestJS 12</h4><p>Application framework</p></div>
+        <div class="stack-item"><div class="stack-icon">🟦</div><h4>TypeScript 6</h4><p>Type-safe codebase</p></div>
+        <div class="stack-item"><div class="stack-icon">🐳</div><h4>Docker</h4><p>Multi-stage builds</p></div>
+        <div class="stack-item"><div class="stack-icon">☸️</div><h4>Kubernetes</h4><p>Container orchestration</p></div>
+        <div class="stack-item"><div class="stack-icon">🔄</div><h4>FluxCD</h4><p>GitOps delivery</p></div>
+        <div class="stack-item"><div class="stack-icon">⚡</div><h4>GitHub Actions</h4><p>CI / CD pipelines</p></div>
+        <div class="stack-item"><div class="stack-icon">🛡️</div><h4>Trivy</h4><p>Security scanning</p></div>
+        <div class="stack-item"><div class="stack-icon">🟢</div><h4>Node.js 22</h4><p>Runtime environment</p></div>
       </div>
     </section>
 
