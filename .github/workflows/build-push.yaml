@@ -80,10 +80,9 @@ jobs:
       - name: Commit and push updated manifest
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          FULL_SHA="${{ github.sha }}"
-          REPO="${{ github.repository }}"
-          ACTOR="${{ github.actor }}"
-          APP_COMMIT_URL="https://github.com/${REPO}/commit/${FULL_SHA}"
+
+          # Read the app-repo commit message (subject line only)
+          APP_COMMIT_MSG=$(git log -1 --pretty=%s)
 
           cd manifest-repo
           git config user.name  "github-actions[bot]"
@@ -95,10 +94,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit — image tag is already up to date."
           else
-            git commit \
-              -m "ci: update pos-api image to sha-${SHORT_SHA} [skip ci]" \
-              -m "App-repo commit : ${FULL_SHA}" \
-              -m "Triggered by    : ${ACTOR}" \
-              -m "Source          : ${APP_COMMIT_URL}"
+            git commit -m "${APP_COMMIT_MSG} (sha-${SHORT_SHA}) [skip ci]"
             git push
           fi
