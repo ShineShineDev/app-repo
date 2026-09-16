@@ -81,8 +81,8 @@ jobs:
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
 
-          # Read the app-repo commit message (subject line only)
-          APP_COMMIT_MSG=$(git log -1 --pretty=%s)
+          # Read the app-repo commit message directly from the GitHub push event context
+          APP_COMMIT_MSG="${{ github.event.head_commit.message }}"
 
           cd manifest-repo
           git config user.name  "github-actions[bot]"
