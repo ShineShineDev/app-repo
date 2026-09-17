@@ -9,14 +9,15 @@ permissions:
   contents: read
   security-events: write
 
-
 jobs:
   build-and-push:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
+
     outputs:
       image-tag: ${{ steps.meta.outputs.version }}
       image: ${{ steps.meta.outputs.tags }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -42,65 +43,121 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true      
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
 
+  # ============================================================
+  # Update FluxCD + ArgoCD Manifest Repository
+  # ============================================================
 
   update-manifest:
     name: Update Image Tag in Manifest Repo
     runs-on: ubuntu-latest
-    needs: build-and-push
+
+    needs:
+      - build-and-push
 
     steps:
       - name: Checkout manifest repo
         uses: actions/checkout@v5
         with:
-          repository: ${{ secrets.MANIFEST_REPO }}       # e.g. your-org/manifest-repo
+          repository: ${{ secrets.MANIFEST_REPO }}
           token: ${{ secrets.MANIFEST_REPO_TOKEN }}
           path: manifest-repo
 
-      - name: Update image tag in deployment manifest
+      # --------------------------------------------------------
+      # Calculate Docker image
+      # --------------------------------------------------------
+
+      - name: Set image tag
+        id: image
         env:
-          IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          REPOSITORY: ${{ github.event.repository.name }}
+          GITHUB_SHA: ${{ github.sha }}
         run: |
-          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          NEW_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:sha-${SHORT_SHA}"
+          SHORT_SHA=$(echo "$GITHUB_SHA" | cut -c1-7)
 
-          # Update the image field inside the deployment container spec (For fluxcd)
-          sed -i "s|image:.*|image: ${NEW_IMAGE}|" \
-            manifest-repo/fluxcd/app-manifests/pos-api-deployment.yaml
+          NEW_IMAGE="${DOCKERHUB_USERNAME}/${REPOSITORY}:sha-${SHORT_SHA}"
 
-          echo "Updated image to: ${NEW_IMAGE}"
-          cat manifest-repo/fluxcd/app-manifests/pos-api-deployment.yaml
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "image=${NEW_IMAGE}" >> "$GITHUB_OUTPUT"
 
-          # Update the image field inside the deployment container spec (For argocd)
-          sed -i "s|image:.*|image: ${NEW_IMAGE}|" \
-            manifest-repo/argocd/app-manifests/pos-api-deployment.yaml
+          echo "Docker Image:"
+          echo "${NEW_IMAGE}"
 
-          echo "Updated image to: ${NEW_IMAGE}"
-          cat manifest-repo/argocd/app-manifests/pos-api-deployment.yaml
-          
-      - name: Commit and push updated manifest
+      # --------------------------------------------------------
+      # Update FluxCD manifest
+      # --------------------------------------------------------
+
+      - name: Update FluxCD manifest
+        env:
+          NEW_IMAGE: ${{ steps.image.outputs.image }}
         run: |
-          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          FILE="manifest-repo/fluxcd/app-manifests/pos-api-deployment.yaml"
 
-          # Read the app-repo commit message directly from the GitHub push event context
-          APP_COMMIT_MSG="${{ github.event.head_commit.message }}"
+          echo "Updating FluxCD manifest:"
+          echo "$FILE"
 
+          sed -i "s|image:.*|image: ${NEW_IMAGE}|" "$FILE"
+
+          echo ""
+          echo "Updated FluxCD manifest:"
+          cat "$FILE"
+
+      # --------------------------------------------------------
+      # Update ArgoCD manifest
+      # --------------------------------------------------------
+
+      - name: Update ArgoCD manifest
+        env:
+          NEW_IMAGE: ${{ steps.image.outputs.image }}
+        run: |
+          FILE="manifest-repo/argocd/app-manifests/pos-api-deployment.yaml"
+
+          echo "Updating ArgoCD manifest:"
+          echo "$FILE"
+
+          sed -i "s|image:.*|image: ${NEW_IMAGE}|" "$FILE"
+
+          echo ""
+          echo "Updated ArgoCD manifest:"
+          cat "$FILE"
+
+      # --------------------------------------------------------
+      # Commit both manifests
+      # --------------------------------------------------------
+
+      - name: Commit and push updated manifests
+        env:
+          APP_COMMIT_MSG: ${{ github.event.head_commit.message }}
+          SHORT_SHA: ${{ steps.image.outputs.short_sha }}
+        run: |
           cd manifest-repo
-          git config user.name  "github-actions[bot]"
+
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add fluxcd/app-manifests/pos-api-deployment.yaml
+          # Add BOTH FluxCD and ArgoCD manifests
+          git add \
+            fluxcd/app-manifests/pos-api-deployment.yaml \
+            argocd/app-manifests/pos-api-deployment.yaml
 
-          # Only commit when there are actual changes
+          # Check if there are changes
           if git diff --cached --quiet; then
-            echo "No changes to commit — image tag is already up to date."
-          else
-            git commit -m "${APP_COMMIT_MSG} (sha-${SHORT_SHA}) [skip ci]"
-            git push
+            echo "No changes to commit."
+            echo "Image tag is already up to date."
+            exit 0
           fi
+
+          echo "Changes to commit:"
+          git diff --cached
+
+          git commit \
+            -m "${APP_COMMIT_MSG} (sha-${SHORT_SHA}) [skip ci]"
+
+          git push
