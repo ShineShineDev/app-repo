@@ -70,13 +70,20 @@ jobs:
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           NEW_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:sha-${SHORT_SHA}"
 
-          # Update the image field inside the deployment container spec
+          # Update the image field inside the deployment container spec (For fluxcd)
           sed -i "s|image:.*|image: ${NEW_IMAGE}|" \
             manifest-repo/fluxcd/app-manifests/pos-api-deployment.yaml
 
           echo "Updated image to: ${NEW_IMAGE}"
           cat manifest-repo/fluxcd/app-manifests/pos-api-deployment.yaml
 
+          # Update the image field inside the deployment container spec (For argocd)
+          sed -i "s|image:.*|image: ${NEW_IMAGE}|" \
+            manifest-repo/argocd/app-manifests/pos-api-deployment.yaml
+
+          echo "Updated image to: ${NEW_IMAGE}"
+          cat manifest-repo/argocd/app-manifests/pos-api-deployment.yaml
+          
       - name: Commit and push updated manifest
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
